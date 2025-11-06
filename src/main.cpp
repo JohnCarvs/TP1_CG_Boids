@@ -90,9 +90,9 @@ void sierpinskiCreate(std::vector<float> &v, std::vector<int> &e, int it, float 
     sierpinskiCreate(v, e, it - 1, x, y + h2 / 2, l2);
 }
 
-void objLoader(std::vector<float> &v, std::vector<int> &e)
+void objLoader(std::vector<float> &v, std::vector<int> &e, std::string path)
 {
-    std::ifstream inputFile("resource_files/models/elephant.obj");
+    std::ifstream inputFile(path);
     if (!inputFile.is_open()) {
         std::cerr << "Erro ao abrir arquivo";
         return;
@@ -100,12 +100,14 @@ void objLoader(std::vector<float> &v, std::vector<int> &e)
 
     std::vector<float> positions; // x,y,z
     std::vector<float> texcoords; // u,v
+    std::vector<float> normals; // x,y,z
 
     std::string line;
     while (std::getline(inputFile, line)) {
         std::istringstream iss(line);
         std::string prefix;
         iss >> prefix;
+
 
         if (prefix == "v") {
             float x, y, z;
@@ -120,11 +122,18 @@ void objLoader(std::vector<float> &v, std::vector<int> &e)
             texcoords.push_back(u);
             texcoords.push_back(vCoord);
         }
+        else if (prefix == "vn") {
+            float x, y, z;
+            iss >> x >> y >> z;
+            normals.push_back(x);
+            normals.push_back(y);
+            normals.push_back(z);
+        }
         else if (prefix == "f") {
             // quebrar a linha inteira em tokens
             std::vector<std::string> tokens;
             std::string token;
-            std::istringstream fss(line.substr(2)); // ignora "f "
+            std::istringstream fss(line.substr(2)); // ignora "f"
             while (fss >> token) tokens.push_back(token);
 
             auto addVertex = [&](std::string t) {
@@ -141,7 +150,8 @@ void objLoader(std::vector<float> &v, std::vector<int> &e)
                     sscanf(t.c_str(), "%d", &vid);
                 }
 
-                float x=0,y=0,z=0, u=0,vCoord=0, r=0,g=0,b=0;
+                float x=0,y=0,z=0, u=0,vCoord=0, r=0.8,g=0.3,b=0.1;
+                float nx=0, ny=1.0, nz=0; // Normal padrão (aponta para cima)
 
                 if (vid > 0 && (vid-1)*3+2 < (int)positions.size()) {
                     x = positions[(vid-1)*3+0];
@@ -153,6 +163,12 @@ void objLoader(std::vector<float> &v, std::vector<int> &e)
                     u = texcoords[(vtid-1)*2+0];
                     vCoord = texcoords[(vtid-1)*2+1];
                 }
+                
+                if (vnid > 0 && (vnid-1)*3+2 < (int)normals.size()) {
+                    nx = normals[(vnid-1)*3+0];
+                    ny = normals[(vnid-1)*3+1];
+                    nz = normals[(vnid-1)*3+2];
+                }
 
                 v.push_back(x);
                 v.push_back(y);
@@ -162,8 +178,11 @@ void objLoader(std::vector<float> &v, std::vector<int> &e)
                 v.push_back(b);
                 v.push_back(u);
                 v.push_back(vCoord);
+                v.push_back(nx);
+                v.push_back(ny);
+                v.push_back(nz);
 
-                int newIndex = (v.size()/8) - 1;
+                int newIndex = (v.size()/11) - 1;
                 e.push_back(newIndex);
             };
 
@@ -399,9 +418,8 @@ int main(int argc, char *argv[])
 
     std::vector<float> v;
     std::vector<int> e;
-
+    
     // cylinderCreate(x, y, z, raio, altura, subdivisões)
-    // Y é altura, X e Z são o plano horizontal
     cylinderCreate(v,e, 0.0, 10.0, 0.0, 5, 30, 32);
     GLfloat verticesCylinder[v.size()];
     GLuint indicesCylinder[e.size()];
@@ -414,11 +432,26 @@ int main(int argc, char *argv[])
         indicesCylinder[i] = e[i];
     }
     
+    std::vector<float> bird_vertices_vec;
+    std::vector<int> bird_indices_vec;
+    objLoader(bird_vertices_vec, bird_indices_vec, "resource_files/models/bird.obj");
+
+    GLfloat bird_vertices[bird_vertices_vec.size()];
+    GLuint bird_indices[bird_indices_vec.size()];
+    for (size_t i = 0; i < bird_vertices_vec.size(); i++)
+    {
+        bird_vertices[i] = bird_vertices_vec[i];
+    }
+    for (size_t i = 0; i < bird_indices_vec.size(); i++)
+    {
+        bird_indices[i] = bird_indices_vec[i];
+    }
+    
     std::vector<float> v_plano;
     std::vector<int> e_plano;
     
     // Criar terreno com subdivisão recursiva
-    createFloor(v_plano, e_plano, 0.0f, -5.0f, 0.0f, 200.0f, 0.4f, 80);
+    createFloor(v_plano, e_plano, 0.0f, -5.0f, 0.0f, 200.0f, 2.0f, 10);
     
     GLfloat verticesPlano[v_plano.size()];
     GLuint indicesPlano[e_plano.size()];
@@ -431,7 +464,7 @@ int main(int argc, char *argv[])
         indicesPlano[i] = e_plano[i];
     }
     
-    std::cout << "Terreno criado: " << v_plano.size()/8 << " vertices, " << e_plano.size()/3 << " triangulos" << std::endl;
+    std::cout << "Terreno criado: " << v_plano.size()/11 << " vertices, " << e_plano.size()/3 << " triangulos" << std::endl;
 
 
 
@@ -472,6 +505,23 @@ int main(int argc, char *argv[])
     VAO1.Unbind();
     VBO1.Unbind();
     EBO1.Unbind();
+    
+    // VAO, VBO, EBO para o pássaro
+    VAO VAO_bird;
+    VAO_bird.Bind();
+
+    VBO VBO_bird(bird_vertices, sizeof(bird_vertices));
+    EBO EBO_bird(bird_indices, sizeof(bird_indices));
+
+    // linka o VBO com os atributos dos vertices (coordenadas, cores, texturas e normais)
+    VAO_bird.LinkAttrib(VBO_bird, 0, 3, GL_FLOAT, 11 * sizeof(float), (void *)0);
+    VAO_bird.LinkAttrib(VBO_bird, 1, 3, GL_FLOAT, 11 * sizeof(float), (void *)(3 * sizeof(float)));
+    VAO_bird.LinkAttrib(VBO_bird, 2, 2, GL_FLOAT, 11 * sizeof(float), (void *)(6 * sizeof(float)));
+    VAO_bird.LinkAttrib(VBO_bird, 3, 3, GL_FLOAT, 11 * sizeof(float), (void *)(8 * sizeof(float)));
+
+    VAO_bird.Unbind();
+    VBO_bird.Unbind();
+    EBO_bird.Unbind();
 
     // VAO, VBO, EBO para o plano (chão)
     VAO VAOPlano;
@@ -513,6 +563,10 @@ int main(int argc, char *argv[])
     glm::vec3 cylinderPos = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::mat4 cylinderModel = glm::mat4(1.0f);
     cylinderModel = glm::translate(cylinderModel, cylinderPos);
+    
+    glm::vec3 birdPos = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::mat4 birdModel = glm::mat4(1.0f);
+    birdModel = glm::translate(birdModel, birdPos);
 
     glm::vec3 planePos = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::mat4 planeModel = glm::mat4(1.0f);
@@ -563,6 +617,11 @@ int main(int argc, char *argv[])
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(planeModel));
         VAOPlano.Bind();
         glDrawElements(GL_TRIANGLES, sizeof(indicesPlano) / sizeof(indicesPlano[0]), GL_UNSIGNED_INT, 0);
+        
+        // Desenhar o pássaro
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(birdModel));
+        VAO_bird.Bind();
+        glDrawElements(GL_TRIANGLES, sizeof(bird_indices) / sizeof(bird_indices[0]), GL_UNSIGNED_INT, 0);
 
         
         // Desenhar o cilindro
