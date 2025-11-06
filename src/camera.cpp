@@ -61,6 +61,28 @@ void Camera::Inputs(GLFWwindow *window)
     {
         speed = 0.002f;
     }
+    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+    {
+        std::cout << "Camera Position: [" << Position.x << " , " << Position.y << " , " << Position.z << "]" << std::endl;
+        std::cout << "Camera Orientation: [" << Orientation.x << " , " << Orientation.y << " , " << Orientation.z << "]" << std::endl;
+    }
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+    {
+        this->Position = glm::vec3(-73.2692 , 64.8335 , 77.3049);
+        this->Orientation = glm::vec3(0.609405 , -0.505023 , -0.611181);
+    }
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+    {
+        this->Position = glm::vec3(25.2059 , 3.92256 , 102.288);
+        this->Orientation = glm::vec3(-0.249372 , 0.137718 , -0.958485);
+    }
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+    {
+        this->Position = glm::vec3(-5.1818 , 90.4276 , 7.68019);
+        this->Orientation = glm::vec3(0.11171 , -0.979828 , -0.165099);
+    }
+
+
 
     // processa inputs do mouse
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
