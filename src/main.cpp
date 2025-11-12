@@ -21,6 +21,7 @@
 #include "EBO.hpp"
 #include "texture.hpp"
 #include "camera.hpp"
+#include "flock.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -34,8 +35,8 @@ class vertex{
 };
 
 // definir o tamanho da janela
-const unsigned int width = 1200;
-const unsigned int height = 1200;
+unsigned int width = 1200;
+unsigned int height = 1200;
 
 void sierpinskiCreate(std::vector<float> &v, std::vector<int> &e, int it, float x, float y, float l)
 {
@@ -150,7 +151,7 @@ void objLoader(std::vector<float> &v, std::vector<int> &e, std::string path)
                     sscanf(t.c_str(), "%d", &vid);
                 }
 
-                float x=0,y=0,z=0, u=0,vCoord=0, r=0.8,g=0.3,b=0.1;
+                float x=0,y=0,z=0, u=0,vCoord=0, r=0.5,g=0.2,b=0.1;
                 float nx=0, ny=1.0, nz=0; // Normal padrão (aponta para cima)
 
                 if (vid > 0 && (vid-1)*3+2 < (int)positions.size()) {
@@ -282,6 +283,62 @@ void cylinderCreate(std::vector<float> &v, std::vector<int> &e, float x, float y
     }
 }
 
+void coneCreate(std::vector<float> &v, std::vector<int> &e, float x, float y, float z, float r, float h, int it)
+{
+    // Para flat shading, cada face precisa ter seus próprios vértices com normal única
+    int baseIndex = v.size() / 11;
+    
+    // ponto de cima
+    glm::vec3 p_top(x, y + h, z);
+    
+    // Criar faces laterais do cilindro (cada quad = 2 triângulos)
+    for(int i=0; i<it; i++){
+        float angle1 = 2*M_PI * i / it;
+        float angle2 = 2*M_PI * ((i+1) % it) / it;
+        
+        // Calcular posições dos 4 vértices do quad 
+        float x1 = sin(angle1);
+        float z1 = cos(angle1);
+        float x2 = sin(angle2);
+        float z2 = cos(angle2);
+        
+        
+        glm::vec3 p1_bot(x + x1*r, y - h/2, z + z1*r);
+        glm::vec3 p2_bot(x + x2*r, y - h/2, z + z2*r);
+        
+        // Calcular normal da face (perpendicular ao quad)
+        glm::vec3 edge1 = p_top - p1_bot;
+        glm::vec3 edge2 = p1_bot - p2_bot;
+        glm::vec3 faceNormal = glm::normalize(glm::cross(edge2, edge1));
+        
+        // Primeiro triângulo (p1_top, p2_top, p1_bot)
+        // Vértice 1
+        v.push_back(p_top.x); v.push_back(p_top.y); v.push_back(p_top.z);
+        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(0.0f); v.push_back(0.0f);
+        v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
+        
+        // Vértice 2
+        v.push_back(p2_bot.x); v.push_back(p2_bot.y); v.push_back(p2_bot.z);
+        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(1.0f); v.push_back(0.0f);
+        v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
+        
+        // Vértice 3
+        v.push_back(p1_bot.x); v.push_back(p1_bot.y); v.push_back(p1_bot.z);
+        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(0.0f); v.push_back(1.0f);
+        v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
+        
+        
+        // Adicionar índices
+        int offset = baseIndex + i*3;
+        e.push_back(offset + 0);
+        e.push_back(offset + 1);
+        e.push_back(offset + 2);
+    }
+}
+
 void createFloor(std::vector<float> &v, std::vector<int> &e, float x, float y, float z, float scale, float max_h, int max_it)
 {
     std::random_device rd;
@@ -327,17 +384,17 @@ void createFloor(std::vector<float> &v, std::vector<int> &e, float x, float y, f
             
             // Adicionar 3 vértices do primeiro triângulo
             v.push_back(p1.x); v.push_back(p1.y); v.push_back(p1.z);
-            v.push_back(0.5f); v.push_back(0.5f); v.push_back(0.5f);
+            v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
             v.push_back(0.0f); v.push_back(0.0f);
             v.push_back(normal1.x); v.push_back(normal1.y); v.push_back(normal1.z);
             
             v.push_back(p2.x); v.push_back(p2.y); v.push_back(p2.z);
-            v.push_back(0.5f); v.push_back(0.5f); v.push_back(0.5f);
+            v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
             v.push_back(1.0f); v.push_back(0.0f);
             v.push_back(normal1.x); v.push_back(normal1.y); v.push_back(normal1.z);
             
             v.push_back(p3.x); v.push_back(p3.y); v.push_back(p3.z);
-            v.push_back(0.5f); v.push_back(0.5f); v.push_back(0.5f);
+            v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
             v.push_back(0.0f); v.push_back(1.0f);
             v.push_back(normal1.x); v.push_back(normal1.y); v.push_back(normal1.z);
             
@@ -353,17 +410,17 @@ void createFloor(std::vector<float> &v, std::vector<int> &e, float x, float y, f
             
             // Adicionar 3 vértices do segundo triângulo
             v.push_back(p4.x); v.push_back(p4.y); v.push_back(p4.z);
-            v.push_back(0.5f); v.push_back(0.5f); v.push_back(0.5f);
+            v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
             v.push_back(1.0f); v.push_back(1.0f);
             v.push_back(normal2.x); v.push_back(normal2.y); v.push_back(normal2.z);
             
             v.push_back(p5.x); v.push_back(p5.y); v.push_back(p5.z);
-            v.push_back(0.5f); v.push_back(0.5f); v.push_back(0.5f);
+            v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
             v.push_back(1.0f); v.push_back(0.0f);
             v.push_back(normal2.x); v.push_back(normal2.y); v.push_back(normal2.z);
             
             v.push_back(p6.x); v.push_back(p6.y); v.push_back(p6.z);
-            v.push_back(0.5f); v.push_back(0.5f); v.push_back(0.5f);
+            v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
             v.push_back(0.0f); v.push_back(1.0f);
             v.push_back(normal2.x); v.push_back(normal2.y); v.push_back(normal2.z);
             
@@ -391,14 +448,14 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
     GLfloat lightVertices[] = {
-        -0.1f+5.0f, -0.1f, 0.1f,
-        -0.1f+5.0f, -0.1f, -0.1f,
-        0.1f+5.0f, -0.1f, -0.1f, 
-        0.1f+5.0f, -0.1f, 0.1f, 
-        -0.1f+5.0f, 0.1f, 0.1f, 
-        -0.1f+5.0f, 0.1f, -0.1f, 
-        0.1f+5.0f, 0.1f, -0.1f, 
-        0.1f+5.0f, 0.1f, 0.1f
+        -1.1f+5.0f, -1.1f, 1.1f,
+        -1.1f+5.0f, -1.1f, -1.1f,
+        1.1f+5.0f, -1.1f, -1.1f, 
+        1.1f+5.0f, -1.1f, 1.1f, 
+        -1.1f+5.0f, 1.1f, 1.1f, 
+        -1.1f+5.0f, 1.1f, -1.1f, 
+        1.1f+5.0f, 1.1f, -1.1f, 
+        1.1f+5.0f, 1.1f, 1.1f
     };
     
     GLuint lightIndices[] = {
@@ -432,9 +489,25 @@ int main(int argc, char *argv[])
         indicesCylinder[i] = e[i];
     }
     
+    std::vector<float> v_cone;
+    std::vector<int> e_cone;
+    
+    // cylinderCreate(x, y, z, raio, altura, subdivisões)
+    coneCreate(v_cone,e_cone, 0.0, 30.0, 0.0, 10, 30, 32);
+    GLfloat vertices_cone[v_cone.size()];
+    GLuint indices_cone[e_cone.size()];
+    for (size_t i = 0; i < v_cone.size(); i++)
+    {
+        vertices_cone[i] = v_cone[i];
+    }
+    for (size_t i = 0; i < e_cone.size(); i++)
+    {
+        indices_cone[i] = e_cone[i];
+    }
+    
     std::vector<float> bird_vertices_vec;
     std::vector<int> bird_indices_vec;
-    objLoader(bird_vertices_vec, bird_indices_vec, "resource_files/models/bird.obj");
+    objLoader(bird_vertices_vec, bird_indices_vec, "resource_files/models/cadeira.obj");
 
     GLfloat bird_vertices[bird_vertices_vec.size()];
     GLuint bird_indices[bird_indices_vec.size()];
@@ -451,7 +524,7 @@ int main(int argc, char *argv[])
     std::vector<int> e_plano;
     
     // Criar terreno com subdivisão recursiva
-    createFloor(v_plano, e_plano, 0.0f, -5.0f, 0.0f, 200.0f, 2.0f, 10);
+    createFloor(v_plano, e_plano, 0.0f, -5.0f, 0.0f, 400.0f, 2.0f, 30);
     
     GLfloat verticesPlano[v_plano.size()];
     GLuint indicesPlano[e_plano.size()];
@@ -467,7 +540,11 @@ int main(int argc, char *argv[])
     std::cout << "Terreno criado: " << v_plano.size()/11 << " vertices, " << e_plano.size()/3 << " triangulos" << std::endl;
 
 
-
+    Flock flock;
+        // Adicionar boids
+    for (int i = 0; i < 50; i++) {
+        flock.add();
+    }
 
 
 
@@ -482,10 +559,38 @@ int main(int argc, char *argv[])
     }
     // associa a janela especificada ao contexto atual
     glfwMakeContextCurrent(window);
+    
+    // Definir tamanho mínimo da janela para evitar problemas de aspect ratio
+    glfwSetWindowSizeLimits(window, 400, 300, GLFW_DONT_CARE, GLFW_DONT_CARE);
+    
     // carrega o openGL com o glad
     gladLoadGL();
     // delimita o espaço pra desenhar
     glViewport(0, 0, width, height);
+    
+    // Criar a camera antes do callback
+    Camera camera(width, height, glm::vec3(0.0f, 3.0f, 100.0f));
+    
+    // Armazenar ponteiro da câmera no user pointer da janela
+    glfwSetWindowUserPointer(window, &camera);
+    
+    // Callback para redimensionamento da janela
+    glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int w, int h) {
+        // Garantir dimensões mínimas
+        if (w <= 0) w = 1;
+        if (h <= 0) h = 1;
+        
+        glViewport(0, 0, w, h);
+        width = w;
+        height = h;
+        
+        // Recuperar ponteiro da câmera
+        Camera* cam = static_cast<Camera*>(glfwGetWindowUserPointer(win));
+        if (cam) {
+            cam->width = w;
+            cam->height = h;
+        }
+    });
 
     Shader shaderProgram("resource_files/shaders/default.vert", "resource_files/shaders/default.frag");
 
@@ -505,6 +610,23 @@ int main(int argc, char *argv[])
     VAO1.Unbind();
     VBO1.Unbind();
     EBO1.Unbind();
+    
+    // VAO, VBO, EBO para o cone
+    VAO VAO_cone;
+    VAO_cone.Bind();
+
+    VBO VBO_cone(vertices_cone, sizeof(vertices_cone));
+    EBO EBO_cone(indices_cone, sizeof(indices_cone));
+
+    // linka o VBO com os atributos dos vertices (coordenadas, cores, texturas e normais)
+    VAO_cone.LinkAttrib(VBO_cone, 0, 3, GL_FLOAT, 11 * sizeof(float), (void *)0);
+    VAO_cone.LinkAttrib(VBO_cone, 1, 3, GL_FLOAT, 11 * sizeof(float), (void *)(3 * sizeof(float)));
+    VAO_cone.LinkAttrib(VBO_cone, 2, 2, GL_FLOAT, 11 * sizeof(float), (void *)(6 * sizeof(float)));
+    VAO_cone.LinkAttrib(VBO_cone, 3, 3, GL_FLOAT, 11 * sizeof(float), (void *)(8 * sizeof(float)));
+
+    VAO_cone.Unbind();
+    VBO_cone.Unbind();
+    EBO_cone.Unbind();
     
     // VAO, VBO, EBO para o pássaro
     VAO VAO_bird;
@@ -563,6 +685,10 @@ int main(int argc, char *argv[])
     glm::vec3 cylinderPos = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::mat4 cylinderModel = glm::mat4(1.0f);
     cylinderModel = glm::translate(cylinderModel, cylinderPos);
+   
+    glm::vec3 cone_Pos = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::mat4 cone_model = glm::mat4(1.0f);
+    cone_model = glm::translate(cone_model, cone_Pos);
     
     glm::vec3 birdPos = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::mat4 birdModel = glm::mat4(1.0f);
@@ -588,18 +714,27 @@ int main(int argc, char *argv[])
 
     glEnable(GL_DEPTH_TEST);
 
-    // cria a camera
-    Camera camera(width, height, glm::vec3(0.0f, 3.0f, 100.0f));
+    // Variáveis para deltaTime
+    float lastTime = glfwGetTime();
+    float deltaTime = 0.0f;
 
     while (!glfwWindowShouldClose(window))
     {
+        // Calcular deltaTime
+        float currentTime = glfwGetTime();
+        deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+
         // cor base
         glClearColor(0.6f, 0.7f, 0.70f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         
-        camera.Inputs(window);
-        camera.updateMatrix(45.0f, 0.1f, 500.0f);
+        camera.Inputs(window, deltaTime);
+        
+        // Passar os boids para a camera
+        camera.updateMatrix(90.0f, 0.1f, 1000.0f, flock);
+        
         //std::cout << "CameraPos:        " << "[" << std::setprecision(2) << camera.Position[0] << " , " << camera.Position[1] << " , " << camera.Position[2] << "]" << "      ";
         //std::cout << "CameraOrientation: " << "[" << std::setprecision(2) << camera.Orientation[0] << " , " << camera.Orientation[1] << " , " << camera.Orientation[2] << "]" << std::endl;
         
@@ -618,17 +753,27 @@ int main(int argc, char *argv[])
         VAOPlano.Bind();
         glDrawElements(GL_TRIANGLES, sizeof(indicesPlano) / sizeof(indicesPlano[0]), GL_UNSIGNED_INT, 0);
         
-        // Desenhar o pássaro
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(birdModel));
-        VAO_bird.Bind();
-        glDrawElements(GL_TRIANGLES, sizeof(bird_indices) / sizeof(bird_indices[0]), GL_UNSIGNED_INT, 0);
+        // Atualizar e desenhar os pássaros (boids)
+        flock.inputs(window);
+        flock.update(deltaTime, 200.0f, 200.0f, 200.0f);  // limites X, Y, Z
+        VAO_bird.Bind();  // Bind uma vez fora do loop
+        for (const auto& boid : flock.getBoids()) {
+            glm::mat4 model = boid.getModelMatrix();  // Pega a matriz de transformação do boid
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));  // USA A MATRIZ DO BOID!
+            glDrawElements(GL_TRIANGLES, sizeof(bird_indices) / sizeof(bird_indices[0]), GL_UNSIGNED_INT, 0);
+        }
 
-        
         // Desenhar o cilindro
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(cylinderModel));
         VAO1.Bind();
         // escrever triangulos no buffer e desenhar
         glDrawElements(GL_TRIANGLES, sizeof(indicesCylinder) / sizeof(indicesCylinder[0]), GL_UNSIGNED_INT, 0);
+        
+        // Desenhar o cone
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(cone_model));
+        VAO_cone.Bind();
+        // escrever triangulos no buffer e desenhar
+        glDrawElements(GL_TRIANGLES, sizeof(indices_cone) / sizeof(indices_cone[0]), GL_UNSIGNED_INT, 0);
         
         // Desenhar a luz
         lightShader.Activate();

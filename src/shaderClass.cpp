@@ -39,7 +39,7 @@ Shader::Shader(const char *vertexFile, const char *fragmentFile)
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
 	glCompileShader(fragmentShader);
-	compileErrors(vertexShader, "FRAGMENT");
+	compileErrors(fragmentShader, "FRAGMENT");
 
 	// cria o programa de shader completo e associa aos dois shaders criados
 	ID = glCreateProgram();
@@ -48,7 +48,7 @@ Shader::Shader(const char *vertexFile, const char *fragmentFile)
 
 	// usa o programa de shader criado na sessão atual
 	glLinkProgram(ID);
-	compileErrors(vertexShader, "PROGRAM");
+	compileErrors(ID, "PROGRAM");
 
 	// deleta os shaders pois já foram carregados para o programa principal
 	glDeleteShader(vertexShader);
