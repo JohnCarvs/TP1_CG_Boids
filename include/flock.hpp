@@ -13,7 +13,6 @@ class Flock
 private:
     std::vector<Boid> flock_list;
 
-    std::random_device rd;
     std::mt19937 gen;
     std::uniform_int_distribution<int> randomInt;
 

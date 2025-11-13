@@ -11,12 +11,16 @@ Boid::Boid(glm::vec3 pos, glm::vec3 vel, bool objective)
     maxForce = 0.5f;
     perceptionRadius = 50.0f;
     isObjective = objective;
+    
+    // Inicializar animação das asas com fase aleatória baseada no endereço do objeto
+    wingPhase = static_cast<float>(reinterpret_cast<uintptr_t>(this) % 628) / 100.0f; // 0 a 6.28
+    wingFrequency = 5.0f;  // 5 batidas por segundo
 }
 
 Boid::Boid(bool objective)
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    // Usar endereço do objeto como seed (único para cada boid)
+    std::mt19937 gen(reinterpret_cast<uintptr_t>(this));
     std::uniform_real_distribution<float> randomPos(-5.0, 5.0);
     std::uniform_real_distribution<float> randomVel(-1.0, 1.0);
         
@@ -27,6 +31,10 @@ Boid::Boid(bool objective)
     maxForce = 0.5f;
     perceptionRadius = 50.0f;
     isObjective = objective;
+    
+    // Inicializar animação das asas com fase aleatória baseada no endereço do objeto
+    wingPhase = static_cast<float>(reinterpret_cast<uintptr_t>(this) % 628) / 100.0f; // 0 a 6.28
+    wingFrequency = 5.0f;  // 5 batidas por segundo
 }
 
 void Boid::update(std::vector<Boid> flock_list, float delta_time)
@@ -53,6 +61,11 @@ void Boid::update(std::vector<Boid> flock_list, float delta_time)
     
     // Atualizar posição
     position += velocity * delta_time;
+    
+    // Atualizar animação das asas
+    wingPhase += wingFrequency * 2.0f * 3.14159265f * delta_time;
+    if (wingPhase > 2.0f * 3.14159265f)
+        wingPhase -= 2.0f * 3.14159265f;
     
     // Resetar aceleração para o próximo frame
     acceleration = glm::vec3(0.0f);

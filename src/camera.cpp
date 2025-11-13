@@ -1,4 +1,5 @@
 #include "camera.hpp"
+#include <iostream>
 
 Camera::Camera(int width, int height, glm::vec3 position)
 {

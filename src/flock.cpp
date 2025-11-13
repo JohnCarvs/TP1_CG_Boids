@@ -1,7 +1,8 @@
 #include "flock.hpp"
 #include <GLFW/glfw3.h> // GLFW
+#include <ctime>
 
-Flock::Flock() : gen(rd()), randomInt(0, 1000)
+Flock::Flock() : gen(static_cast<unsigned int>(time(nullptr))), randomInt(0, 1000)
 {
 }
 

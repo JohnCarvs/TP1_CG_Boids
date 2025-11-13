@@ -15,6 +15,10 @@ public:
     float maxForce;
     float perceptionRadius;
     bool isObjective;
+    
+    // Animação das asas
+    float wingPhase;       // Fase atual [0, 2pi]
+    float wingFrequency;   // Frequencia de batida
 
     // construtor padrao
     Boid(glm::vec3 pos, glm::vec3 vel, bool objective = false);

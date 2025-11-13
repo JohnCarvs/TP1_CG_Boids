@@ -507,7 +507,7 @@ int main(int argc, char *argv[])
     
     std::vector<float> bird_vertices_vec;
     std::vector<int> bird_indices_vec;
-    objLoader(bird_vertices_vec, bird_indices_vec, "resource_files/models/cadeira.obj");
+    objLoader(bird_vertices_vec, bird_indices_vec, "resource_files/models/bird.obj");
 
     GLfloat bird_vertices[bird_vertices_vec.size()];
     GLuint bird_indices[bird_indices_vec.size()];
@@ -537,15 +537,11 @@ int main(int argc, char *argv[])
         indicesPlano[i] = e_plano[i];
     }
     
-    std::cout << "Terreno criado: " << v_plano.size()/11 << " vertices, " << e_plano.size()/3 << " triangulos" << std::endl;
-
-
     Flock flock;
-        // Adicionar boids
+    // Adicionar boids
     for (int i = 0; i < 50; i++) {
         flock.add();
     }
-
 
 
     // cria uma janela com GLFW nas dimensões e nome escolhidos
@@ -744,6 +740,9 @@ int main(int argc, char *argv[])
         
         // Passar posição da câmera para o shader
         glUniform3f(glGetUniformLocation(shaderProgram.ID, "camPos"), camera.Position.x, camera.Position.y, camera.Position.z);
+        
+        // Inicializar wingPhase com valor padrão (0.0) para objetos sem animação
+        glUniform1f(glGetUniformLocation(shaderProgram.ID, "wingPhase"), 0.0f);
 
         // adicinar a textura
         popCat.Bind();
@@ -760,8 +759,12 @@ int main(int argc, char *argv[])
         for (const auto& boid : flock.getBoids()) {
             glm::mat4 model = boid.getModelMatrix();  // Pega a matriz de transformação do boid
             glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));  // USA A MATRIZ DO BOID!
+            glUniform1f(glGetUniformLocation(shaderProgram.ID, "wingPhase"), boid.wingPhase);  // Passar fase da asa
             glDrawElements(GL_TRIANGLES, sizeof(bird_indices) / sizeof(bird_indices[0]), GL_UNSIGNED_INT, 0);
         }
+
+        // Resetar wingPhase para objetos estáticos (cilindro, cone, etc)
+        glUniform1f(glGetUniformLocation(shaderProgram.ID, "wingPhase"), 0.0f);
 
         // Desenhar o cilindro
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(cylinderModel));

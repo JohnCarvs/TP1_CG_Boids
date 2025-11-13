@@ -10,13 +10,23 @@ out vec3 Normal;
 out vec3 FragPos;
 
 uniform float time;
+uniform float wingPhase;
 uniform mat4 camMatrix;
 uniform mat4 model;
 
 void main()
 {
+   // Aplicar animação das asas
+   vec3 pos = aPos;
+   
+   // Se é um vértice de asa
+   if (abs(pos.x) > 4.0) {
+       float wingOffset = sin(wingPhase) * 1.5;  // Amplitude: +-1.5 unidades (movimento maior)
+       pos.y += wingOffset;
+   }
+   
    // operações para renderizar em 3d
-   FragPos = vec3(model * vec4(aPos, 1.0));
+   FragPos = vec3(model * vec4(pos, 1.0));
    gl_Position = camMatrix * vec4(FragPos, 1.0);
    
    // Transformar normal para world space
