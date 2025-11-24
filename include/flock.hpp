@@ -15,11 +15,15 @@ private:
 
     std::mt19937 gen;
     std::uniform_int_distribution<int> randomInt;
+    bool alwaysPerceiveLeader;
+
 
 public:
     Flock();
     
     void add();
+    
+    void add(glm::vec3 position, glm::vec3 velocity);
 
     // deleta um boid aleatório
     void clear();

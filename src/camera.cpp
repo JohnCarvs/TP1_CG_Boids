@@ -32,7 +32,7 @@ void Camera::updateMatrix(float FOVdeg, float nearPlane, float farPlane, const F
     if (followCenterMode && flock.size() > 0)
     {
         // Posição alvo no alto da "torre" no centro do mundo (0, altura, 0)
-        glm::vec3 targetPosition = glm::vec3(0.0f, 60.0f, 0.0f);
+        glm::vec3 targetPosition = glm::vec3(30.0f, 60.0f, 0.0f);
         // Orientação alvo aponta do olho para o centro do bando
         glm::vec3 targetOrientation = glm::normalize(flock_center - targetPosition);
         
@@ -109,50 +109,90 @@ void Camera::Matrix(Shader &shader, const char *uniform)
 void Camera::Inputs(GLFWwindow *window, float deltaTime)
 {
     // MODO 1: Torre no centro (olhando para o bando do alto)
+    static bool key1WasPressed = false;
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
     {
-        if (!this->followCenterMode && !this->followLeaderMode && !this->perpendicularMode)
+        if (!key1WasPressed)
         {
-            this->prevPosition = Position;
-            this->prevOrientation = Orientation;
+            if (!this->followCenterMode && !this->followLeaderMode && !this->perpendicularMode)
+            {
+                this->prevPosition = Position;
+                this->prevOrientation = Orientation;
+            }
+            std::cout << "Modo camera: torre" << std::endl;
+            key1WasPressed = true;
         }
         this->followCenterMode = true;
         this->followLeaderMode = false;
         this->perpendicularMode = false;
     }
+    else
+    {
+        key1WasPressed = false;
+    }
     
     // MODO 2: Atrás do bando a distância fixa
+    static bool key2WasPressed = false;
     if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
     {
-        if (!this->followCenterMode && !this->followLeaderMode && !this->perpendicularMode)
+        if (!key2WasPressed)
         {
-            this->prevPosition = Position;
-            this->prevOrientation = Orientation;
+            if (!this->followCenterMode && !this->followLeaderMode && !this->perpendicularMode)
+            {
+                this->prevPosition = Position;
+                this->prevOrientation = Orientation;
+            }
+            std::cout << "Modo camera: seguir" << std::endl;
+            key2WasPressed = true;
         }
         this->followLeaderMode = true;
         this->followCenterMode = false;
         this->perpendicularMode = false;
     }
+    else
+    {
+        key2WasPressed = false;
+    }
     // Tecla 3: Modo 3 - Perpendicular à velocidade do bando, paralelo ao chão
+    static bool key3WasPressed = false;
     if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
     {
-        if (!this->followCenterMode && !this->followLeaderMode && !this->perpendicularMode)
+        if (!key3WasPressed)
         {
-            this->prevPosition = Position;
-            this->prevOrientation = Orientation;
+            if (!this->followCenterMode && !this->followLeaderMode && !this->perpendicularMode)
+            {
+                this->prevPosition = Position;
+                this->prevOrientation = Orientation;
+            }
+            std::cout << "Modo camera: perpendicular" << std::endl;
+            key3WasPressed = true;
         }
         this->perpendicularMode = true;
         this->followCenterMode = false;
         this->followLeaderMode = false;
     }
+    else
+    {
+        key3WasPressed = false;
+    }
     // Tecla 4: Retornar ao modo de navegação livre
+    static bool key4WasPressed = false;
     if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
     {
-        this->Position = prevPosition;
-        this->Orientation = prevOrientation;
-        this->followCenterMode = false;
-        this->followLeaderMode = false;
-        this->perpendicularMode = false;
+        if (!key4WasPressed)
+        {
+            this->Position = prevPosition;
+            this->Orientation = prevOrientation;
+            this->followCenterMode = false;
+            this->followLeaderMode = false;
+            this->perpendicularMode = false;
+            std::cout << "Modo camera: livre" << std::endl;
+            key4WasPressed = true;
+        }
+    }
+    else
+    {
+        key4WasPressed = false;
     }
     if (followCenterMode || followLeaderMode || perpendicularMode)
         return;
@@ -185,7 +225,7 @@ void Camera::Inputs(GLFWwindow *window, float deltaTime)
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
     {
-        speed = 40.0f;
+        speed = 80.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
     {

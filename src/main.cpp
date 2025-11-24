@@ -12,6 +12,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <cmath>
+#include <ctime>
 #include <vector>
 #include <random>
 
@@ -26,6 +27,9 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+// Árvores globais para os boids evitarem
+std::vector<Tree> globalTrees;
 
 class vertex{
     public:
@@ -91,7 +95,7 @@ void sierpinskiCreate(std::vector<float> &v, std::vector<int> &e, int it, float 
     sierpinskiCreate(v, e, it - 1, x, y + h2 / 2, l2);
 }
 
-void objLoader(std::vector<float> &v, std::vector<int> &e, std::string path)
+void objLoader(std::vector<float> &v, std::vector<int> &e, std::string path, float r = 0.3f, float g = 0.2f, float b = 0.1f)
 {
     std::ifstream inputFile(path);
     if (!inputFile.is_open()) {
@@ -151,7 +155,7 @@ void objLoader(std::vector<float> &v, std::vector<int> &e, std::string path)
                     sscanf(t.c_str(), "%d", &vid);
                 }
 
-                float x=0,y=0,z=0, u=0,vCoord=0, r=0.5,g=0.2,b=0.1;
+                float x=0,y=0,z=0, u=0,vCoord=0;
                 float nx=0, ny=1.0, nz=0; // Normal padrão (aponta para cima)
 
                 if (vid > 0 && (vid-1)*3+2 < (int)positions.size()) {
@@ -236,38 +240,41 @@ void cylinderCreate(std::vector<float> &v, std::vector<int> &e, float x, float y
         // Primeiro triângulo (p1_top, p2_top, p1_bot)
         // Vértice 1
         v.push_back(p1_top.x); v.push_back(p1_top.y); v.push_back(p1_top.z);
-        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        // v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(0.3f); v.push_back(0.15f); v.push_back(0.1f);
         v.push_back(0.0f); v.push_back(0.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
         // Vértice 2
         v.push_back(p2_top.x); v.push_back(p2_top.y); v.push_back(p2_top.z);
-        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        // v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(0.3f); v.push_back(0.15f); v.push_back(0.1f);
         v.push_back(1.0f); v.push_back(0.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
         // Vértice 3
         v.push_back(p1_bot.x); v.push_back(p1_bot.y); v.push_back(p1_bot.z);
-        v.push_back(0.3f); v.push_back(0.1f); v.push_back(0.0f);
+        v.push_back(0.3f); v.push_back(0.15f); v.push_back(0.1f);
         v.push_back(0.0f); v.push_back(1.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
         // Segundo triângulo (p2_top, p2_bot, p1_bot)
         // Vértice 4
         v.push_back(p2_top.x); v.push_back(p2_top.y); v.push_back(p2_top.z);
-        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        // v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(0.3f); v.push_back(0.15f); v.push_back(0.1f);
         v.push_back(1.0f); v.push_back(0.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
         // Vértice 5
         v.push_back(p2_bot.x); v.push_back(p2_bot.y); v.push_back(p2_bot.z);
-        v.push_back(0.3f); v.push_back(0.1f); v.push_back(0.0f);
+        v.push_back(0.3f); v.push_back(0.15f); v.push_back(0.1f);
         v.push_back(1.0f); v.push_back(1.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
         // Vértice 6
         v.push_back(p1_bot.x); v.push_back(p1_bot.y); v.push_back(p1_bot.z);
-        v.push_back(0.3f); v.push_back(0.1f); v.push_back(0.0f);
+        v.push_back(0.3f); v.push_back(0.15f); v.push_back(0.1f);
         v.push_back(0.0f); v.push_back(1.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
@@ -309,24 +316,26 @@ void coneCreate(std::vector<float> &v, std::vector<int> &e, float x, float y, fl
         // Calcular normal da face (perpendicular ao quad)
         glm::vec3 edge1 = p_top - p1_bot;
         glm::vec3 edge2 = p1_bot - p2_bot;
-        glm::vec3 faceNormal = glm::normalize(glm::cross(edge2, edge1));
+        glm::vec3 faceNormal = glm::normalize(glm::cross(edge1, edge2));
         
+
+
         // Primeiro triângulo (p1_top, p2_top, p1_bot)
         // Vértice 1
         v.push_back(p_top.x); v.push_back(p_top.y); v.push_back(p_top.z);
-        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
         v.push_back(0.0f); v.push_back(0.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
         // Vértice 2
         v.push_back(p2_bot.x); v.push_back(p2_bot.y); v.push_back(p2_bot.z);
-        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
         v.push_back(1.0f); v.push_back(0.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
         // Vértice 3
         v.push_back(p1_bot.x); v.push_back(p1_bot.y); v.push_back(p1_bot.z);
-        v.push_back(0.2f); v.push_back(0.4f); v.push_back(0.2f);
+        v.push_back(0.3f); v.push_back(0.4f); v.push_back(0.1f);
         v.push_back(0.0f); v.push_back(1.0f);
         v.push_back(faceNormal.x); v.push_back(faceNormal.y); v.push_back(faceNormal.z);
         
@@ -520,11 +529,41 @@ int main(int argc, char *argv[])
         bird_indices[i] = bird_indices_vec[i];
     }
     
+    std::vector<float> cadeira_vertices_vec;
+    std::vector<int> cadeira_indices_vec;
+    objLoader(cadeira_vertices_vec, cadeira_indices_vec, "resource_files/models/cadeira.obj");
+
+    GLfloat cadeira_vertices[cadeira_vertices_vec.size()];
+    GLuint cadeira_indices[cadeira_indices_vec.size()];
+    for (size_t i = 0; i < cadeira_vertices_vec.size(); i++)
+    {
+        cadeira_vertices[i] = cadeira_vertices_vec[i];
+    }
+    for (size_t i = 0; i < cadeira_indices_vec.size(); i++)
+    {
+        cadeira_indices[i] = cadeira_indices_vec[i];
+    }
+    
+    std::vector<float> fusca_vertices_vec;
+    std::vector<int> fusca_indices_vec;
+    objLoader(fusca_vertices_vec, fusca_indices_vec, "resource_files/models/fusca.obj", 0.6f, 0.6f, 0.6f);
+
+    GLfloat fusca_vertices[fusca_vertices_vec.size()];
+    GLuint fusca_indices[fusca_indices_vec.size()];
+    for (size_t i = 0; i < fusca_vertices_vec.size(); i++)
+    {
+        fusca_vertices[i] = fusca_vertices_vec[i];
+    }
+    for (size_t i = 0; i < fusca_indices_vec.size(); i++)
+    {
+        fusca_indices[i] = fusca_indices_vec[i];
+    }
+    
     std::vector<float> v_plano;
     std::vector<int> e_plano;
     
     // Criar terreno com subdivisão recursiva
-    createFloor(v_plano, e_plano, 0.0f, -5.0f, 0.0f, 400.0f, 2.0f, 30);
+    createFloor(v_plano, e_plano, 0.0f, -5.0f, 0.0f, 3000.0f, 10.0f, 50);
     
     GLfloat verticesPlano[v_plano.size()];
     GLuint indicesPlano[e_plano.size()];
@@ -542,6 +581,30 @@ int main(int argc, char *argv[])
     for (int i = 0; i < 50; i++) {
         flock.add();
     }
+    
+    // Criar árvores espalhadas pelo chão
+    std::mt19937 treeGen(static_cast<unsigned int>(time(nullptr)));
+    std::uniform_real_distribution<float> treePosX(-500.0f, 500.0f);
+    std::uniform_real_distribution<float> treePosZ(-500.0f, 500.0f);
+    std::uniform_real_distribution<float> treeRadius(0.5f, 1.0f);
+    std::uniform_real_distribution<float> treeHeight(20.0f, 100.0f);
+    
+    int numTrees = 15;
+    for (int i = 0; i < numTrees; i++) {
+        Tree tree;
+        tree.position = glm::vec3(treePosX(treeGen), -5.0f, treePosZ(treeGen));
+        tree.radius = treeRadius(treeGen);
+        tree.height = treeHeight(treeGen);
+        globalTrees.push_back(tree);
+    }
+    
+    
+    
+    Tree tree;
+    tree.height = 100.0f;
+    tree.radius = 0.5f;
+    tree.position = glm::vec3(0.0f,0.0f,0.0f);
+    globalTrees.push_back(tree);
 
 
     // cria uma janela com GLFW nas dimensões e nome escolhidos
@@ -641,6 +704,39 @@ int main(int argc, char *argv[])
     VBO_bird.Unbind();
     EBO_bird.Unbind();
 
+    // VAO, VBO, EBO para a cadeira
+    VAO VAO_cadeira;
+    VAO_cadeira.Bind();
+
+    VBO VBO_cadeira(cadeira_vertices, sizeof(cadeira_vertices));
+    EBO EBO_cadeira(cadeira_indices, sizeof(cadeira_indices));
+
+    VAO_cadeira.LinkAttrib(VBO_cadeira, 0, 3, GL_FLOAT, 11 * sizeof(float), (void *)0);
+    VAO_cadeira.LinkAttrib(VBO_cadeira, 1, 3, GL_FLOAT, 11 * sizeof(float), (void *)(3 * sizeof(float)));
+    VAO_cadeira.LinkAttrib(VBO_cadeira, 2, 2, GL_FLOAT, 11 * sizeof(float), (void *)(6 * sizeof(float)));
+    VAO_cadeira.LinkAttrib(VBO_cadeira, 3, 3, GL_FLOAT, 11 * sizeof(float), (void *)(8 * sizeof(float)));
+
+    VAO_cadeira.Unbind();
+    VBO_cadeira.Unbind();
+    EBO_cadeira.Unbind();
+
+    // VAO, VBO, EBO para o fusca
+    VAO VAO_fusca;
+    VAO_fusca.Bind();
+
+    VBO VBO_fusca(fusca_vertices, sizeof(fusca_vertices));
+    EBO EBO_fusca(fusca_indices, sizeof(fusca_indices));
+
+    // linka o VBO com os atributos dos vertices (coordenadas, cores, texturas e normais)
+    VAO_fusca.LinkAttrib(VBO_fusca, 0, 3, GL_FLOAT, 11 * sizeof(float), (void *)0);
+    VAO_fusca.LinkAttrib(VBO_fusca, 1, 3, GL_FLOAT, 11 * sizeof(float), (void *)(3 * sizeof(float)));
+    VAO_fusca.LinkAttrib(VBO_fusca, 2, 2, GL_FLOAT, 11 * sizeof(float), (void *)(6 * sizeof(float)));
+    VAO_fusca.LinkAttrib(VBO_fusca, 3, 3, GL_FLOAT, 11 * sizeof(float), (void *)(8 * sizeof(float)));
+
+    VAO_fusca.Unbind();
+    VBO_fusca.Unbind();
+    EBO_fusca.Unbind();
+
     // VAO, VBO, EBO para o plano (chão)
     VAO VAOPlano;
     VAOPlano.Bind();
@@ -690,6 +786,11 @@ int main(int argc, char *argv[])
     glm::mat4 birdModel = glm::mat4(1.0f);
     birdModel = glm::translate(birdModel, birdPos);
 
+    glm::vec3 fuscaPos = glm::vec3(125.0f, 15.0f, 20.0f);
+    glm::mat4 fuscaModel = glm::mat4(1.0f);
+    fuscaModel = glm::translate(fuscaModel, fuscaPos);
+    fuscaModel = glm::scale(fuscaModel, glm::vec3(0.5f));
+
     glm::vec3 planePos = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::mat4 planeModel = glm::mat4(1.0f);
     planeModel = glm::translate(planeModel, planePos);
@@ -703,6 +804,18 @@ int main(int argc, char *argv[])
     glUniform4f(glGetUniformLocation(shaderProgram.ID, "lightColor"), lightColor.x, lightColor.y, lightColor.z, lightColor.w);
     glUniform3f(glGetUniformLocation(shaderProgram.ID, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
 
+    // Configurar fog
+    bool fogEnabled = false;
+    glm::vec3 fogColor = glm::vec3(0.6f, 0.7f, 0.70f); // Mesma cor do fundo
+    //glm::vec3 fogColor = glm::vec3(0.6f, 0.0f, 0.70f); 
+    float fogStart = 50.0f;
+    float fogEnd = 600.0f;
+    
+    glUniform1i(glGetUniformLocation(shaderProgram.ID, "fogEnabled"), fogEnabled);
+    glUniform3f(glGetUniformLocation(shaderProgram.ID, "fogColor"), fogColor.x, fogColor.y, fogColor.z);
+    glUniform1f(glGetUniformLocation(shaderProgram.ID, "fogStart"), fogStart);
+    glUniform1f(glGetUniformLocation(shaderProgram.ID, "fogEnd"), fogEnd);
+
     // textura
     std::string texPath = "resource_files/textures/";
     Texture popCat((texPath + "elephant.png").c_str(), GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
@@ -713,6 +826,10 @@ int main(int argc, char *argv[])
     // Variáveis para deltaTime
     float lastTime = glfwGetTime();
     float deltaTime = 0.0f;
+    
+    // Variáveis de controle
+    bool isPaused = false;
+    bool useChairModel = false;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -728,8 +845,78 @@ int main(int argc, char *argv[])
         
         camera.Inputs(window, deltaTime);
         
+        // Toggle fog com tecla F
+        static bool fKeyWasPressed = false;
+        if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+            if (!fKeyWasPressed) {
+                fogEnabled = !fogEnabled;
+                shaderProgram.Activate();
+                glUniform1i(glGetUniformLocation(shaderProgram.ID, "fogEnabled"), fogEnabled);
+                std::cout << "Fog: " << (fogEnabled ? "ligado" : "desligado") << std::endl;
+                fKeyWasPressed = true;
+            }
+        } else {
+            fKeyWasPressed = false;
+        }
+        
+        // Toggle pausa com tecla P
+        static bool pKeyWasPressed = false;
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+            if (!pKeyWasPressed) {
+                isPaused = !isPaused;
+                std::cout << (isPaused ? "pausado" : "retomado") << std::endl;
+                pKeyWasPressed = true;
+            }
+        } else {
+            pKeyWasPressed = false;
+        }
+        
+        // Toggle modelo alternativo com tecla M
+        static bool mKeyWasPressed = false;
+        if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) {
+            if (!mKeyWasPressed) {
+                useChairModel = !useChairModel;
+                std::cout << "Modelo: " << (useChairModel ? "cadeira" : "passaro") << std::endl;
+                mKeyWasPressed = true;
+            }
+        } else {
+            mKeyWasPressed = false;
+        }
+        
+        // Controlar velocidade do líder (boid objetivo) - alterar módulo
+        if (!flock.getBoids().empty() && flock.getBoids()[0].isObjective) {
+            Boid& leader = flock.getBoids()[0];
+            float speedChange = 20.0f * deltaTime;
+            
+            // Aumentar ou diminuir o módulo da velocidade
+            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+                float currentSpeed = glm::length(leader.velocity);
+                if (currentSpeed > 0.1f) {
+                    leader.velocity = glm::normalize(leader.velocity) * (currentSpeed + speedChange);
+                } else {
+                    // Se velocidade é zero, dar uma velocidade inicial
+                    leader.velocity = glm::vec3(0.0f, 0.0f, speedChange);
+                }
+                std::cout << "Velocidade lider: " << glm::length(leader.velocity) << std::endl;
+            }
+            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+                float currentSpeed = glm::length(leader.velocity);
+                float newSpeed = glm::max(0.0f, currentSpeed - speedChange);
+                if (currentSpeed > 0.1f) {
+                    leader.velocity = glm::normalize(leader.velocity) * newSpeed;
+                }
+                std::cout << "Velocidade lider: " << glm::length(leader.velocity) << std::endl;
+            }
+            
+            // Limitar velocidade máxima do líder
+            float maxLeaderSpeed = 100.0f;
+            if (glm::length(leader.velocity) > maxLeaderSpeed) {
+                leader.velocity = glm::normalize(leader.velocity) * maxLeaderSpeed;
+            }
+        }
+        
         // Passar os boids para a camera
-        camera.updateMatrix(90.0f, 0.1f, 1000.0f, flock);
+        camera.updateMatrix(90.0f, 0.1f, 2000.0f, flock);
         
         //std::cout << "CameraPos:        " << "[" << std::setprecision(2) << camera.Position[0] << " , " << camera.Position[1] << " , " << camera.Position[2] << "]" << "      ";
         //std::cout << "CameraOrientation: " << "[" << std::setprecision(2) << camera.Orientation[0] << " , " << camera.Orientation[1] << " , " << camera.Orientation[2] << "]" << std::endl;
@@ -754,29 +941,60 @@ int main(int argc, char *argv[])
         
         // Atualizar e desenhar os pássaros (boids)
         flock.inputs(window);
-        flock.update(deltaTime, 200.0f, 200.0f, 200.0f);  // limites X, Y, Z
-        VAO_bird.Bind();  // Bind uma vez fora do loop
+        if (!isPaused) {
+            flock.update(deltaTime, 600.0f, 200.0f, 600.0f);  // limites X, Y, Z
+        }
+        
+        // Escolher modelo baseado no modo
+        if (useChairModel) {
+            VAO_cadeira.Bind();
+        } else {
+            VAO_bird.Bind();
+        }
         for (const auto& boid : flock.getBoids()) {
-            glm::mat4 model = boid.getModelMatrix();  // Pega a matriz de transformação do boid
-            glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));  // USA A MATRIZ DO BOID!
-            glUniform1f(glGetUniformLocation(shaderProgram.ID, "wingPhase"), boid.wingPhase);  // Passar fase da asa
-            glDrawElements(GL_TRIANGLES, sizeof(bird_indices) / sizeof(bird_indices[0]), GL_UNSIGNED_INT, 0);
+            glm::mat4 model = boid.getModelMatrix();
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            
+            // Cadeira não tem animação de asas
+            if (useChairModel) {
+                glUniform1f(glGetUniformLocation(shaderProgram.ID, "wingPhase"), 0.0f);
+                glDrawElements(GL_TRIANGLES, sizeof(cadeira_indices) / sizeof(cadeira_indices[0]), GL_UNSIGNED_INT, 0);
+            } else {
+                glUniform1f(glGetUniformLocation(shaderProgram.ID, "wingPhase"), boid.wingPhase);
+                glDrawElements(GL_TRIANGLES, sizeof(bird_indices) / sizeof(bird_indices[0]), GL_UNSIGNED_INT, 0);
+            }
         }
 
         // Resetar wingPhase para objetos estáticos (cilindro, cone, etc)
         glUniform1f(glGetUniformLocation(shaderProgram.ID, "wingPhase"), 0.0f);
 
-        // Desenhar o cilindro
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(cylinderModel));
-        VAO1.Bind();
-        // escrever triangulos no buffer e desenhar
-        glDrawElements(GL_TRIANGLES, sizeof(indicesCylinder) / sizeof(indicesCylinder[0]), GL_UNSIGNED_INT, 0);
+        // Desenhar todas as árvores
+        for (const auto& tree : globalTrees) {
+            // Desenhar o tronco (cilindro)
+            glm::mat4 trunkModel = glm::mat4(1.0f);
+            trunkModel = glm::translate(trunkModel, tree.position);
+            trunkModel = glm::translate(trunkModel, glm::vec3(0.0f, 0.0f, 0.0f));
+            trunkModel = glm::scale(trunkModel, glm::vec3(tree.radius + tree.height/80, tree.height /10, tree.radius + tree.height/80));
+            
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(trunkModel));
+            VAO1.Bind();
+            glDrawElements(GL_TRIANGLES, sizeof(indicesCylinder) / sizeof(indicesCylinder[0]), GL_UNSIGNED_INT, 0);
+            
+            // Desenhar a copa (cone)
+            glm::mat4 foliageModel = glm::mat4(1.0f);
+            foliageModel = glm::translate(foliageModel, tree.position);
+            foliageModel = glm::translate(foliageModel, glm::vec3(0.0f, 0.0f, 0.0f));
+            foliageModel = glm::scale(foliageModel, glm::vec3(tree.radius + tree.height/80, tree.height /10, tree.radius + tree.height/80));
+            
+            glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(foliageModel));
+            VAO_cone.Bind();
+            glDrawElements(GL_TRIANGLES, sizeof(indices_cone) / sizeof(indices_cone[0]), GL_UNSIGNED_INT, 0);
+        }
         
-        // Desenhar o cone
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(cone_model));
-        VAO_cone.Bind();
-        // escrever triangulos no buffer e desenhar
-        glDrawElements(GL_TRIANGLES, sizeof(indices_cone) / sizeof(indices_cone[0]), GL_UNSIGNED_INT, 0);
+        // Desenhar o fusca
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(fuscaModel));
+        VAO_fusca.Bind();
+        glDrawElements(GL_TRIANGLES, sizeof(fusca_indices) / sizeof(fusca_indices[0]), GL_UNSIGNED_INT, 0);
         
         // Desenhar a luz
         lightShader.Activate();

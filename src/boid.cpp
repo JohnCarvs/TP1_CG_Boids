@@ -2,7 +2,7 @@
 #include <random>
 #include <glm/gtc/matrix_transform.hpp>
 
-Boid::Boid(glm::vec3 pos, glm::vec3 vel, bool objective)
+Boid::Boid(glm::vec3 pos, glm::vec3 vel, bool objective, bool alwaysPerceiveLeader)
 {
     position = pos;
     velocity = vel;
@@ -11,13 +11,14 @@ Boid::Boid(glm::vec3 pos, glm::vec3 vel, bool objective)
     maxForce = 0.5f;
     perceptionRadius = 50.0f;
     isObjective = objective;
+    alwaysPerceiveLeader = alwaysPerceiveLeader;
     
     // Inicializar animação das asas com fase aleatória baseada no endereço do objeto
     wingPhase = static_cast<float>(reinterpret_cast<uintptr_t>(this) % 628) / 100.0f; // 0 a 6.28
     wingFrequency = 5.0f;  // 5 batidas por segundo
 }
 
-Boid::Boid(bool objective)
+Boid::Boid(bool objective, bool alwaysPerceiveLeader)
 {
     // Usar endereço do objeto como seed (único para cada boid)
     std::mt19937 gen(reinterpret_cast<uintptr_t>(this));
@@ -27,15 +28,19 @@ Boid::Boid(bool objective)
     position = glm::vec3(randomPos(gen), randomPos(gen), randomPos(gen));
     velocity = glm::vec3(randomVel(gen), randomVel(gen), randomVel(gen));
     acceleration = glm::vec3(0.0f);
-    maxSpeed = 35.0f;
+    maxSpeed = 75.0f;
     maxForce = 0.5f;
     perceptionRadius = 50.0f;
     isObjective = objective;
+    alwaysPerceiveLeader = alwaysPerceiveLeader;
     
     // Inicializar animação das asas com fase aleatória baseada no endereço do objeto
     wingPhase = static_cast<float>(reinterpret_cast<uintptr_t>(this) % 628) / 100.0f; // 0 a 6.28
     wingFrequency = 5.0f;  // 5 batidas por segundo
 }
+
+// Árvores globais
+extern std::vector<Tree> globalTrees;
 
 void Boid::update(std::vector<Boid> flock_list, float delta_time)
 {
@@ -46,9 +51,14 @@ void Boid::update(std::vector<Boid> flock_list, float delta_time)
     if (!isObjective)
     {
         glm::vec3 objective_update = objective(flock_list);
-        objective_update *= 1.2f;  // Peso para seguir o líder
+        objective_update *= 1.5f;  // Peso para seguir o líder
         applyForce(objective_update);
     }
+    
+    // Evitar obstáculos
+    glm::vec3 obstacleAvoidance = avoidObstacles(globalTrees);
+    obstacleAvoidance *= 30.0f;  // Peso 
+    applyForce(obstacleAvoidance);
     
     // Atualizar velocidade
     velocity += acceleration;
@@ -223,7 +233,7 @@ glm::vec3 Boid::objective(const std::vector<Boid> &boids)
     glm::vec3 desired = leader.position - position;
     float d = glm::length(desired);
     
-    if (d > 0.0f && d < 100.0f)
+    if (d > 0.0f && (d < 100.0f || this->alwaysPerceiveLeader))
     {
         desired = glm::normalize(desired) * maxSpeed * 0.5f;  // 50% da velocidade
         
@@ -296,6 +306,59 @@ void Boid::edges(float boundX, float boundY, float boundZ)
     position.x = glm::clamp(position.x, -boundX, boundX);
     position.y = glm::clamp(position.y, 10.0f, boundY);
     position.z = glm::clamp(position.z, -boundZ, boundZ);
+}
+
+glm::vec3 Boid::avoidObstacles(const std::vector<Tree>& trees)
+{
+    float detectionRadius = 15.0f;  // Distância de detecção
+    glm::vec3 steer = glm::vec3(0.0f);
+    int count = 0;
+    
+    for (const auto& tree : trees)
+    {
+        // Calcular distância 2D (XZ) e verificar altura
+        glm::vec2 posXZ = glm::vec2(position.x, position.z);
+        glm::vec2 treeXZ = glm::vec2(tree.position.x, tree.position.z);
+        float distXZ = glm::distance(posXZ, treeXZ);
+        
+        // Verificar se está na altura da árvore
+        bool inHeightRange = (position.y >= tree.position.y - 1000.0f) && 
+                             (position.y <= tree.position.y + tree.height + 1000.0f);
+        
+        if (distXZ < detectionRadius && inHeightRange)
+        {
+            // Calcular vetor de repulsão
+            glm::vec3 diff = position - tree.position;
+            float distance = glm::length(diff);
+            
+            if (distance > 0.0f)
+            {
+                diff = glm::normalize(diff);
+                // Força inversamente proporcional à distância
+                diff /= (distance * distance);
+                steer += diff;
+                count++;
+            }
+        }
+    }
+    
+    if (count > 0)
+    {
+        steer /= static_cast<float>(count);
+        
+        if (glm::length(steer) > 0.0f)
+        {
+            steer = glm::normalize(steer) * maxSpeed;
+            steer -= velocity;
+            
+            if (glm::length(steer) > maxForce)
+            {
+                steer = glm::normalize(steer) * maxForce;
+            }
+        }
+    }
+    
+    return steer;
 }
 
 glm::mat4 Boid::getModelMatrix() const
