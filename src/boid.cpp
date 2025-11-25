@@ -11,7 +11,7 @@ Boid::Boid(glm::vec3 pos, glm::vec3 vel, bool objective, bool alwaysPerceiveLead
     maxForce = 0.5f;
     perceptionRadius = 50.0f;
     isObjective = objective;
-    alwaysPerceiveLeader = alwaysPerceiveLeader;
+    this->alwaysPerceiveLeader = alwaysPerceiveLeader;
     
     // Inicializar animação das asas com fase aleatória baseada no endereço do objeto
     wingPhase = static_cast<float>(reinterpret_cast<uintptr_t>(this) % 628) / 100.0f; // 0 a 6.28
@@ -32,7 +32,7 @@ Boid::Boid(bool objective, bool alwaysPerceiveLeader)
     maxForce = 0.5f;
     perceptionRadius = 50.0f;
     isObjective = objective;
-    alwaysPerceiveLeader = alwaysPerceiveLeader;
+    this->alwaysPerceiveLeader = alwaysPerceiveLeader;
     
     // Inicializar animação das asas com fase aleatória baseada no endereço do objeto
     wingPhase = static_cast<float>(reinterpret_cast<uintptr_t>(this) % 628) / 100.0f; // 0 a 6.28
